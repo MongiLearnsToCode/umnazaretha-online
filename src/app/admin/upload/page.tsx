@@ -10,8 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
 import { generateR2SignedUrl } from '@/lib/cloudflare';
+import { logAdminAction } from '@/lib/audit';
+import { useUserStore } from '@/store/user-store';
 
 export default function UploadContent() {
+  const { user } = useUserStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('');
@@ -35,6 +38,15 @@ export default function UploadContent() {
       toast({
         title: 'Missing Information',
         description: 'Please fill in all required fields and select a file.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to upload content.',
         variant: 'destructive',
       });
       return;
@@ -76,6 +88,7 @@ export default function UploadContent() {
           language,
           episode_number: episodeNumber,
           season_number: seasonNumber,
+          approval_status: 'pending',
           // video_id will be set after processing by Cloudflare Stream
         })
         .select()
@@ -85,9 +98,40 @@ export default function UploadContent() {
         throw new Error(programError.message);
       }
 
+      // Log the action
+      await logAdminAction(
+        'CREATE_PROGRAM',
+        'program',
+        user.id,
+        programData.id,
+        {
+          title,
+          genre,
+          target_demographic: targetDemographic,
+          language,
+          episode_number: episodeNumber,
+          season_number: seasonNumber
+        }
+      );
+
+      // Create initial approval request for executive producer
+      const { error: approvalError } = await supabase
+        .from('approvals')
+        .insert({
+          content_id: programData.id,
+          content_type: 'program',
+          approval_level: 'executive_producer',
+          status: 'pending'
+        });
+
+      if (approvalError) {
+        console.warn('Failed to create approval request:', approvalError.message);
+        // We don't throw here because the upload was successful, we just couldn't create the approval
+      }
+
       toast({
         title: 'Upload Successful',
-        description: 'Your content has been uploaded and is being processed.',
+        description: 'Your content has been uploaded and is pending approval.',
       });
 
       // Reset form

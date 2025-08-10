@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { logAdminAction } from '@/lib/audit';
+import { useUserStore } from '@/store/user-store';
 
 interface Program {
   id: string;
@@ -29,6 +31,7 @@ interface ScheduleConflict {
 }
 
 export default function SchedulePrograms() {
+  const { user } = useUserStore();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
@@ -119,6 +122,15 @@ export default function SchedulePrograms() {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to schedule content.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (conflicts.length > 0) {
       toast({
         title: 'Scheduling Conflict',
@@ -145,12 +157,30 @@ export default function SchedulePrograms() {
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
           channel,
+          created_by: user.id,
         })
         .select();
 
       if (error) {
         throw new Error(error.message);
       }
+
+      // Log the action
+      const selectedProgramData = programs.find(p => p.id === selectedProgram);
+      await logAdminAction(
+        'CREATE_SCHEDULE',
+        'schedule',
+        user.id,
+        data[0].id,
+        {
+          program_id: selectedProgram,
+          program_title: selectedProgramData?.title,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          channel,
+          duration
+        }
+      );
 
       toast({
         title: 'Schedule Created',
@@ -166,6 +196,23 @@ export default function SchedulePrograms() {
       setConflicts([]);
     } catch (error) {
       console.error('Error scheduling program:', error);
+      
+      // Log the error
+      if (user) {
+        await logAdminAction(
+          'CREATE_SCHEDULE_ERROR',
+          'schedule',
+          user.id,
+          null,
+          {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            program_id: selectedProgram,
+            start_time: startDate?.toISOString(),
+            duration
+          }
+        );
+      }
+      
       toast({
         title: 'Scheduling Failed',
         description: error instanceof Error ? error.message : 'Failed to schedule program',

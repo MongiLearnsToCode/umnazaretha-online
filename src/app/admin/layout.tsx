@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { Menu, X, Users, Video, Calendar, Upload, LogOut } from 'lucide-react';
+import { Menu, X, Users, Video, Calendar, Upload, LogOut, CheckCircle } from 'lucide-react';
 
 export default function AdminLayout({
   children,
@@ -89,6 +89,10 @@ export default function AdminLayout({
             <Link href="/admin/content" className="flex items-center p-2 text-gray-700 rounded-lg hover:bg-gray-100">
               <Video className="h-5 w-5 mr-3" />
               Manage Content
+            </Link>
+            <Link href="/admin/approval" className="flex items-center p-2 text-gray-700 rounded-lg hover:bg-gray-100">
+              <CheckCircle className="h-5 w-5 mr-3" />
+              Content Approval
             </Link>
             <Link href="/admin/users" className="flex items-center p-2 text-gray-700 rounded-lg hover:bg-gray-100">
               <Users className="h-5 w-5 mr-3" />

@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Edit, Eye, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { logAdminAction } from '@/lib/audit';
+import { useUserStore } from '@/store/user-store';
 
 interface Program {
   id: string;
@@ -23,6 +25,7 @@ interface Program {
 }
 
 export default function ManageContent() {
+  const { user } = useUserStore();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGenre, setFilterGenre] = useState('all');
@@ -74,6 +77,15 @@ export default function ManageContent() {
   };
 
   const handleApprove = async (programId: string) => {
+    if (!user) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to approve content.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('programs')
@@ -83,6 +95,19 @@ export default function ManageContent() {
       if (error) {
         throw new Error(error.message);
       }
+
+      // Log the action
+      const program = programs.find(p => p.id === programId);
+      await logAdminAction(
+        'APPROVE_CONTENT',
+        'program',
+        user.id,
+        programId,
+        {
+          program_title: program?.title,
+          previous_status: program?.approval_status
+        }
+      );
 
       // Update local state
       setPrograms(programs.map(program => 
@@ -97,6 +122,20 @@ export default function ManageContent() {
       });
     } catch (error) {
       console.error('Error approving program:', error);
+      
+      // Log the error
+      if (user) {
+        await logAdminAction(
+          'APPROVE_CONTENT_ERROR',
+          'program',
+          user.id,
+          programId,
+          {
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }
+        );
+      }
+      
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to approve program',
@@ -106,6 +145,15 @@ export default function ManageContent() {
   };
 
   const handleReject = async (programId: string) => {
+    if (!user) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to reject content.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('programs')
@@ -115,6 +163,19 @@ export default function ManageContent() {
       if (error) {
         throw new Error(error.message);
       }
+
+      // Log the action
+      const program = programs.find(p => p.id === programId);
+      await logAdminAction(
+        'REJECT_CONTENT',
+        'program',
+        user.id,
+        programId,
+        {
+          program_title: program?.title,
+          previous_status: program?.approval_status
+        }
+      );
 
       // Update local state
       setPrograms(programs.map(program => 
@@ -129,6 +190,20 @@ export default function ManageContent() {
       });
     } catch (error) {
       console.error('Error rejecting program:', error);
+      
+      // Log the error
+      if (user) {
+        await logAdminAction(
+          'REJECT_CONTENT_ERROR',
+          'program',
+          user.id,
+          programId,
+          {
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }
+        );
+      }
+      
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to reject program',

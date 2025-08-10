@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Crown, User } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { logAdminAction } from '@/lib/audit';
+import { useUserStore } from '@/store/user-store';
 
 interface User {
   id: string;
@@ -21,6 +23,7 @@ interface User {
 }
 
 export default function UserManagement() {
+  const { user: currentUser } = useUserStore();
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
@@ -72,6 +75,15 @@ export default function UserManagement() {
   };
 
   const promoteToAdmin = async (userId: string) => {
+    if (!currentUser) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to manage users.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('users')
@@ -81,6 +93,20 @@ export default function UserManagement() {
       if (error) {
         throw new Error(error.message);
       }
+
+      // Log the action
+      const user = users.find(u => u.id === userId);
+      await logAdminAction(
+        'PROMOTE_USER',
+        'user',
+        currentUser.id,
+        userId,
+        {
+          user_email: user?.email,
+          previous_role: user?.role,
+          new_role: 'admin'
+        }
+      );
 
       // Update local state
       setUsers(users.map(user => 
@@ -95,6 +121,20 @@ export default function UserManagement() {
       });
     } catch (error) {
       console.error('Error promoting user:', error);
+      
+      // Log the error
+      if (currentUser) {
+        await logAdminAction(
+          'PROMOTE_USER_ERROR',
+          'user',
+          currentUser.id,
+          userId,
+          {
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }
+        );
+      }
+      
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to promote user',
@@ -104,6 +144,15 @@ export default function UserManagement() {
   };
 
   const demoteFromAdmin = async (userId: string) => {
+    if (!currentUser) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to manage users.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('users')
@@ -113,6 +162,20 @@ export default function UserManagement() {
       if (error) {
         throw new Error(error.message);
       }
+
+      // Log the action
+      const user = users.find(u => u.id === userId);
+      await logAdminAction(
+        'DEMOTE_USER',
+        'user',
+        currentUser.id,
+        userId,
+        {
+          user_email: user?.email,
+          previous_role: user?.role,
+          new_role: 'subscriber'
+        }
+      );
 
       // Update local state
       setUsers(users.map(user => 
@@ -127,6 +190,20 @@ export default function UserManagement() {
       });
     } catch (error) {
       console.error('Error demoting user:', error);
+      
+      // Log the error
+      if (currentUser) {
+        await logAdminAction(
+          'DEMOTE_USER_ERROR',
+          'user',
+          currentUser.id,
+          userId,
+          {
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }
+        );
+      }
+      
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to demote user',
