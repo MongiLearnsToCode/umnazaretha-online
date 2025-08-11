@@ -41,8 +41,8 @@ export default function AdminLayout({
         id: userData.id,
         email: userData.email,
         role: userData.role,
-        subscription_status: userData.subscription_status,
-        language_preference: userData.language_preference,
+        subscription_status: userData.subscription_status || 'inactive',
+        language_preference: userData.language_preference || 'en',
       });
       setIsAuthenticated(true);
     };

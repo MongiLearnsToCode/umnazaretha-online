@@ -1,19 +1,12 @@
 import { supabase } from '@/lib/supabase';
-
-interface AuditLogEntry {
-  action: string;
-  resource_type: string;
-  resource_id: string | null;
-  user_id: string;
-  details: Record<string, any> | null;
-}
+import { Json } from '@/types/supabase';
 
 export async function logAdminAction(
   action: string,
   resource_type: string,
   user_id: string,
   resource_id?: string,
-  details?: Record<string, any>
+  details?: Json
 ) {
   try {
     const { error } = await supabase

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,8 +16,8 @@ interface PendingApproval {
   content_id: string;
   content_type: string;
   approver_id: string | null;
-  approval_level: string;
-  status: string;
+  approval_level: string | null;
+  status: string | null;
   comments: string | null;
   created_at: string;
   program?: {
@@ -33,11 +33,7 @@ export default function ContentApproval() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchPendingApprovals();
-  }, []);
-
-  const fetchPendingApprovals = async () => {
+  const fetchPendingApprovals = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -71,7 +67,11 @@ export default function ContentApproval() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchPendingApprovals();
+  }, [fetchPendingApprovals]);
 
   const handleApprove = async (approvalId: string, comments: string) => {
     if (!user) {
@@ -94,13 +94,24 @@ export default function ContentApproval() {
         throw new Error(approvalError.message);
       }
 
+      type ApprovalData = {
+        approval_level: string | null;
+        content_id: string;
+        content_type: string;
+        programs: {
+          title: string;
+        } | null;
+      };
+
+      const typedApprovalData = approvalData as unknown as ApprovalData;
+
       // If this is an executive producer approval, create a church leadership approval
-      if (approvalData.approval_level === 'executive_producer') {
+      if (typedApprovalData.approval_level === 'executive_producer') {
         const { error: createError } = await supabase
           .from('approvals')
           .insert({
-            content_id: approvalData.content_id,
-            content_type: approvalData.content_type,
+            content_id: typedApprovalData.content_id,
+            content_type: typedApprovalData.content_type,
             approval_level: 'church_leadership',
             status: 'pending'
           });
@@ -131,20 +142,20 @@ export default function ContentApproval() {
         user.id,
         approvalId,
         {
-          approval_level: approvalData.approval_level,
-          content_id: approvalData.content_id,
-          content_type: approvalData.content_type,
-          content_title: approvalData.programs?.title,
+          approval_level: typedApprovalData.approval_level,
+          content_id: typedApprovalData.content_id,
+          content_type: typedApprovalData.content_type,
+          content_title: typedApprovalData.programs?.title,
           comments
         }
       );
 
       // If this is a church leadership approval, also update the content status
-      if (approvalData.approval_level === 'church_leadership') {
+      if (typedApprovalData.approval_level === 'church_leadership') {
         const { error: contentError } = await supabase
           .from('programs')
           .update({ approval_status: 'approved' })
-          .eq('id', approvalData.content_id);
+          .eq('id', typedApprovalData.content_id);
 
         if (contentError) {
           throw new Error(contentError.message);
@@ -155,10 +166,10 @@ export default function ContentApproval() {
           'CONTENT_APPROVED',
           'program',
           user.id,
-          approvalData.content_id,
+          typedApprovalData.content_id,
           {
-            content_title: approvalData.programs?.title,
-            approval_level: approvalData.approval_level
+            content_title: typedApprovalData.programs?.title,
+            approval_level: typedApprovalData.approval_level
           }
         );
       }
@@ -216,6 +227,17 @@ export default function ContentApproval() {
         throw new Error(approvalError.message);
       }
 
+      type ApprovalData = {
+        content_id: string;
+        content_type: string;
+        approval_level: string | null;
+        programs: {
+          title: string;
+        } | null;
+      };
+
+      const typedApprovalData = approvalData as unknown as ApprovalData;
+
       // Update the current approval
       const { error: updateError } = await supabase
         .from('approvals')
@@ -237,10 +259,10 @@ export default function ContentApproval() {
         user.id,
         approvalId,
         {
-          approval_level: approvalData.approval_level,
-          content_id: approvalData.content_id,
-          content_type: approvalData.content_type,
-          content_title: approvalData.programs?.title,
+          approval_level: typedApprovalData.approval_level,
+          content_id: typedApprovalData.content_id,
+          content_type: typedApprovalData.content_type,
+          content_title: typedApprovalData.programs?.title,
           comments
         }
       );
@@ -249,7 +271,7 @@ export default function ContentApproval() {
       const { error: contentError } = await supabase
         .from('programs')
         .update({ approval_status: 'rejected' })
-        .eq('id', approvalData.content_id);
+        .eq('id', typedApprovalData.content_id);
 
       if (contentError) {
         throw new Error(contentError.message);
@@ -260,10 +282,10 @@ export default function ContentApproval() {
         'CONTENT_REJECTED',
         'program',
         user.id,
-        approvalData.content_id,
+        typedApprovalData.content_id,
         {
-          content_title: approvalData.programs?.title,
-          approval_level: approvalData.approval_level,
+          content_title: typedApprovalData.programs?.title,
+          approval_level: typedApprovalData.approval_level,
           comments
         }
       );
@@ -330,7 +352,7 @@ export default function ContentApproval() {
                 )}
               </CardTitle>
               <CardDescription className="capitalize">
-                {approval.approval_level.replace('_', ' ')} approval
+                {approval.approval_level?.replace('_', ' ') || 'Unknown level'} approval
               </CardDescription>
             </div>
             <Badge variant="secondary">

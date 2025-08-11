@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,11 +33,7 @@ export default function ManageContent() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchPrograms();
-  }, []);
-
-  const fetchPrograms = async () => {
+  const fetchPrograms = useCallback(async () => {
     setLoading(true);
     try {
       let query = supabase
@@ -74,7 +70,11 @@ export default function ManageContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, filterGenre, filterStatus, toast]);
+
+  useEffect(() => {
+    fetchPrograms();
+  }, [fetchPrograms]);
 
   const handleApprove = async (programId: string) => {
     if (!user) {
@@ -264,8 +264,8 @@ export default function ManageContent() {
                   <SelectItem value="worship_services">Worship Services</SelectItem>
                   <SelectItem value="talk_shows">Talk Shows</SelectItem>
                   <SelectItem value="youth_programs">Youth Programs</SelectItem>
-                  <SelectItem value="womens_shows">Women's Shows</SelectItem>
-                  <SelectItem value="mens_shows">Men's Shows</SelectItem>
+                  <SelectItem value="womens_shows">Women&#39;s Shows</SelectItem>
+                  <SelectItem value="mens_shows">Men&#39;s Shows</SelectItem>
                   <SelectItem value="magazine_shows">Magazine Shows</SelectItem>
                   <SelectItem value="community_events">Community Events</SelectItem>
                   <SelectItem value="special_programming">Special Programming</SelectItem>

@@ -166,7 +166,7 @@ export default function UploadContent() {
       <Card>
         <CardHeader>
           <CardTitle>Program Information</CardTitle>
-          <CardDescription>Enter details about the program you're uploading</CardDescription>
+          <CardDescription>Enter details about the program you&#39;re uploading</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -200,8 +200,8 @@ export default function UploadContent() {
                   <SelectItem value="worship_services">Worship Services</SelectItem>
                   <SelectItem value="talk_shows">Talk Shows</SelectItem>
                   <SelectItem value="youth_programs">Youth Programs</SelectItem>
-                  <SelectItem value="womens_shows">Women's Shows</SelectItem>
-                  <SelectItem value="mens_shows">Men's Shows</SelectItem>
+                  <SelectItem value="womens_shows">Women&#39;s Shows</SelectItem>
+                  <SelectItem value="mens_shows">Men&#39;s Shows</SelectItem>
                   <SelectItem value="magazine_shows">Magazine Shows</SelectItem>
                   <SelectItem value="community_events">Community Events</SelectItem>
                   <SelectItem value="special_programming">Special Programming</SelectItem>

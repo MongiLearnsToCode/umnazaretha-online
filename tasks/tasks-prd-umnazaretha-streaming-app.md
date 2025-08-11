@@ -54,5 +54,5 @@
   - [x] 5.4 Implement conflict detection to prevent overlapping program schedules.
   - [x] 5.5 Create forms for editing program metadata (title, genre, description, etc.).
   - [x] 5.6 Build a user management interface to view and manage subscribers.
-  - [ ] 5.7 Implement the two-tier content approval workflow (Executive Producer -> Church Leadership).
-  - [ ] 5.8 Add audit logging for all critical admin actions.
+  - [x] 5.7 Implement the two-tier content approval workflow (Executive Producer -> Church Leadership).
+  - [x] 5.8 Add audit logging for all critical admin actions.
